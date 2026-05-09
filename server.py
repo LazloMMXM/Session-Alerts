@@ -13,11 +13,10 @@ def send_telegram(message):
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.get_json(silent=True)
-    if data and "message" in data:
-        send_telegram(data["message"])
-    elif request.data:
-        send_telegram(request.data.decode("utf-8"))
+    message = request.data.decode("utf-8").strip()
+    if not message:
+        message = "Alert received but message was empty"
+    send_telegram(message)
     return "OK", 200
 
 @app.route("/")
