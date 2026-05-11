@@ -9,13 +9,15 @@ CHANNEL_ID = "-3979381478"
 def send_telegram(message):
     url  = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     data = {"chat_id": CHANNEL_ID, "text": message}
-    requests.post(url, data=data)
+    r = requests.post(url, data=data)
+    print("Telegram response:", r.status_code, r.text)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     message = request.data.decode("utf-8").strip()
     if not message:
         message = "Alert received but message was empty"
+    print("Received:", message)
     send_telegram(message)
     return "OK", 200
 
