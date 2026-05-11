@@ -1,16 +1,46 @@
 from flask import Flask, request
 import requests
+import threading
+import time as time_module
+from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 
 BOT_TOKEN  = "8712600785:AAHNzqg_DKOtpYXFaUBYvu61YfafPFk64Io"
 CHANNEL_ID = "-1003979381478"
 
+message_ids = []
+
 def send_telegram(message):
     url  = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     data = {"chat_id": CHANNEL_ID, "text": message}
     r = requests.post(url, data=data)
     print("Telegram response:", r.status_code, r.text)
+    if r.status_code == 200:
+        msg_id = r.json().get("result", {}).get("message_id")
+        if msg_id:
+            message_ids.append(msg_id)
+
+def delete_all_messages():
+    print(f"Deleting {len(message_ids)} messages...")
+    for msg_id in list(message_ids):
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteMessage"
+        data = {"chat_id": CHANNEL_ID, "message_id": msg_id}
+        r = requests.post(url, data=data)
+        print(f"Deleted {msg_id}:", r.status_code)
+    message_ids.clear()
+
+def scheduler():
+    brussels = pytz.timezone("Europe/Brussels")
+    while True:
+        now = datetime.now(brussels)
+        if now.hour == 22 and now.minute == 0:
+            delete_all_messages()
+            time_module.sleep(60)
+        time_module.sleep(30)
+
+threading.Thread(target=scheduler, daemon=True).start()
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
